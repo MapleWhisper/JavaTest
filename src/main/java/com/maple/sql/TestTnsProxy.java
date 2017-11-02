@@ -13,21 +13,21 @@ public class TestTnsProxy {
 
 
     private static void testSql(String sql) {
-        con = OracleDB.getConnection(null,null);
+        con = OracleDB.getConnection(null, null);
         try {
             assert con != null;
             pstmt = con.prepareStatement(sql);// 实例化预编译语句
             result = pstmt.executeQuery();
-            while(result.next()){
+            while (result.next()) {
                 result.getString(1);
             }
 
 
         } catch (SQLException e) {
             e.printStackTrace();
-        }finally {
+        } finally {
             try {
-                if(con!=null){
+                if (con != null) {
                     con.close();
                 }
             } catch (SQLException e) {
@@ -37,19 +37,20 @@ public class TestTnsProxy {
 
     }
 
-    private static void testDB(String username ,String password) {
+    private static void testDB(String username, String password, String tablePattern) {
 
         //PreparedStatement pstmt2 = null;
 
-        String selectAllTablesSql = "SELECT *  FROM ALL_TABLES WHERE OWNER=? ";
+        String selectAllTablesSql = "SELECT *  FROM ALL_TABLES WHERE OWNER=? and Table_Name like ? ";
 
         String selectTableSql = "Select * from ";
 
-        con = OracleDB.getConnection(username,password);
+        con = OracleDB.getConnection(username, password);
         try {
             assert con != null;
             pstmt = con.prepareStatement(selectAllTablesSql);// 实例化预编译语句
             pstmt.setString(1, username);
+            pstmt.setString(2,tablePattern);
 
 
             //pstmt2 = con.prepareStatement();
@@ -57,15 +58,15 @@ public class TestTnsProxy {
             result = pstmt.executeQuery();
             while (result.next()) {
                 String tableName = result.getString(2);
-                System.out.println("tableName:"+tableName);
-                try{
+                System.out.println("tableName:" + tableName);
+                try {
                     Statement stmt = con.createStatement();
-                    ResultSet rs = stmt.executeQuery(selectTableSql+tableName);
-                    while(rs.next()){
+                    ResultSet rs = stmt.executeQuery(selectTableSql + tableName);
+                    while (rs.next()) {
                         rs.getString(1);
                     }
 
-                }catch (SQLException e){
+                } catch (SQLException e) {
                     System.out.println(e.getMessage());
                 }
 
@@ -85,14 +86,15 @@ public class TestTnsProxy {
     }
 
 
-    public static void main(String args[]){
+    public static void main(String args[]) {
 
 
-        testSql("select * from LDATA12");
+//        testSql("select * from TEST32");
 //        System.out.println("ok");
 //        testSql("Select * from NUMBER3");
-//        testDB("SCOTT","scott");
-//        testDB("Hr","hr");
-        
+//        testDB("SCOTT", "scott", "%");
+        testDB("Hr","hr","%");
+
+
     }
 }

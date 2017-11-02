@@ -6,6 +6,8 @@ import java.text.SimpleDateFormat;
 import java.util.*;
 
 public class TableBuilder {
+
+
     public static void  main(String[] args) throws IOException {
         String sql;
         Integer lineNumber;
