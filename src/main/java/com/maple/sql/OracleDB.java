@@ -56,7 +56,7 @@ public class OracleDB {
 
             return conn;
         } catch (SQLException e) {
-            System.out.println("MySQL操作错误");
+            System.out.println("数据库操作错误");
             e.printStackTrace();
         } catch (Exception e) {
             e.printStackTrace();

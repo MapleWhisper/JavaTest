@@ -49,6 +49,8 @@ public class CalculatorHandler implements CalculatorService.Iface {
     public String test(String input) throws TException {
 
 
+
+        System.out.println("get client request..");
         WallCheckResult result = provider.check(input);
         String str = JSON.toJSONString(result);
 

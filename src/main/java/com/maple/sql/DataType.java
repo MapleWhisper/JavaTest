@@ -1,6 +1,5 @@
 package com.maple.sql;
 
-import org.relaxng.datatype.Datatype;
 
 import javax.xml.crypto.Data;
 import java.util.Random;
@@ -19,7 +18,7 @@ public enum DataType {
     dataTypeNclob("nclob"),
     dataTypeBfile("bfile"),
     dataTypeNumber("number"),
-    dataTypeFloat("float"),
+//    dataTypeFloat("float"),
     dataTypeInt("int");
 
 
@@ -53,8 +52,7 @@ public enum DataType {
 
 
     public static boolean isNumber(DataType type){
-        return (type ==dataTypeNumber || type == DataType.dataTypeInt
-                || type == DataType.dataTypeFloat );
+        return (type ==dataTypeNumber || type == DataType.dataTypeInt);
     }
 
     public static boolean isDate(DataType type){

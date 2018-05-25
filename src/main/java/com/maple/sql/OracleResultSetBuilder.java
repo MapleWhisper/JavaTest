@@ -1,8 +1,5 @@
 package com.maple.sql;
 
-import org.relaxng.datatype.Datatype;
-
-import javax.xml.crypto.Data;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
@@ -14,9 +11,9 @@ import java.util.Random;
 
 public class OracleResultSetBuilder {
 
-    public static final String[] alldatatype = {"char", "nchar", "varchar2", "nvarchar2", "date", "timestamp", "long", "blob", "clob", "nclob", "bfile", "number", "int", "float"};
+    public static final String[] alldatatype = {"char", "nchar", "varchar2", "nvarchar2", "date", "timestamp", "long", "blob", "clob", "nclob", "bfile", "number", "int"};
 
-    public static final String[] testStrings = {"HelloWorld", "你好,世界", "ABCDEFGHIJ", "1234567890", "测试数据", "!@#$%^&*()", "OracleJava"};
+    public static final String[] testStrings = {"HelloWorld", "你好,世界", "ABCDEFGHIJ", "1234567890", "测试数据", "!,@.#，$。%^&*()", "OracleJava","     "};
     public static int[] testStringsByteLength = new int[100];
 
     static {
@@ -29,10 +26,14 @@ public class OracleResultSetBuilder {
     public static SimpleDateFormat df = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
 
 
-    public static final int MaxColumnCount = 50;
-    public static final int MaxRowCount = 100;
+    public static final int MaxColumnCount = 15;        //最大列数
+    public static final int MaxRowCount = 30;           //最大行数
 
     public static final int NullProbability = 20;   //20%的概率生成空的字段
+
+    //为了测试字段压缩，需要将某一行记录或者某一列的记录与前一列相同
+    public static final int RowCopyProbability = 20;          //20%的概率当前行会复制前一行的记录
+    public static final int ColumnCopyProbability = 30;         //20%的概率当前列会复制前一行对应列的数据
 
     public static Random random = new Random();
 
@@ -48,6 +49,8 @@ public class OracleResultSetBuilder {
     int cellCnt = 0;
 
 
+
+
     public static class ColumnNode {
         public DataType dataType;
         public int precision;
@@ -55,13 +58,23 @@ public class OracleResultSetBuilder {
 
     }
 
+    public static void main(String[] args) {
+
+        OracleResultSetBuilder builder = new OracleResultSetBuilder(1, 200, "M");
+        //builder.insertIntoDataBase = true;
+        builder.startInsert();
+
+
+    }
+
+
     public OracleResultSetBuilder(String username, String password, int tableCnt) {
         this.username = username;
         this.password = password;
         this.tableCnt = tableCnt;
     }
 
-    public OracleResultSetBuilder(int tableCnt, String tablePrefix, int tablePrefixStartIndex ) {
+    public OracleResultSetBuilder(int tablePrefixStartIndex, int tableCnt, String tablePrefix) {
         this.tableCnt = tableCnt;
         this.tablePrefix = tablePrefix;
         this.tablePrefixStartIndex = tablePrefixStartIndex;
@@ -70,14 +83,7 @@ public class OracleResultSetBuilder {
     public OracleResultSetBuilder() {
     }
 
-    public static void main(String[] args) {
 
-        OracleResultSetBuilder builder = new OracleResultSetBuilder(9, "Test", 31);
-        //builder.insertIntoDataBase = true;
-        builder.startInsert();
-
-
-    }
 
 
     public String createTableSql(int index) {
@@ -167,7 +173,7 @@ public class OracleResultSetBuilder {
             columnNodeList = createColumnNodeList();
             String createTableSql = createTableSql(i);
             System.out.println(createTableSql);
-            if(insertIntoDataBase){
+            if (insertIntoDataBase) {
                 boolean execSuccess = executeSQL(createTableSql);
                 if (!execSuccess) {
                     // 执行创建表SQL命令出错，表名可能已经存在，跳过这个表，继续创建
@@ -187,8 +193,10 @@ public class OracleResultSetBuilder {
     private void insertRawIntoTable() {
 
         String insertSqlPrefix = "INSERT INTO " + tableName + " VALUES(";
-        int rowCnt = random.nextInt(MaxRowCount);
+        int rowCnt = random.nextInt(MaxRowCount) + 5;
 
+        String preSql = null;
+        List<String> preRowList = new ArrayList<>();
         for (int i = 0; i < rowCnt; i++) {
             //生成行
             StringBuilder sb = new StringBuilder();
@@ -196,15 +204,32 @@ public class OracleResultSetBuilder {
 
             for (int j = 0; j < columnNodeList.size(); j++) {
                 //生成列
-                sb.append(createCellData(columnNodeList.get(j), cellCnt));
+                String colStr;
+                if(getProbability(ColumnCopyProbability) && preRowList.size()==columnNodeList.size()){
+                    colStr = preRowList.get(j);
+                }else{
+                    colStr = createCellData(columnNodeList.get(j), cellCnt);
+                    if(preRowList.size()<columnNodeList.size()){
+                        preRowList.add(colStr);
+                    }else{
+                        preRowList.set(j,colStr);
+                    }
+                }
+                sb.append(colStr);
                 if (j != columnNodeList.size() - 1) {
                     sb.append(" , ");
                 }
             }
             sb.append(")\n");
             System.out.println(sb.toString());
-            if(insertIntoDataBase){
-                executeSQL(sb.toString());
+            if (insertIntoDataBase) {
+                if(getProbability(RowCopyProbability) && preSql!=null && preSql.length()>0){
+                    //复制前一行SQL语句 插入
+                    executeSQL(preSql);
+                }else{
+                    executeSQL(sb.toString());
+                    preSql = sb.toString();
+                }
             }
         }
 
@@ -216,59 +241,57 @@ public class OracleResultSetBuilder {
         StringBuilder sb = new StringBuilder();
         char c = (char) ('A' + (cellCnt % 26));
 
-        if (random.nextInt(100) < NullProbability) {
+        if (getProbability(NullProbability)) {
             //一定概率生成空
             return "null";
         } else if (DataType.isChar(type)) {
-            return getRandomString(columnNode.precision,c);
-        } else if(DataType.isLob(type)){
-            if(type==DataType.dataTypeBlob){
+            return getRandomString(columnNode.precision, c);
+        } else if (DataType.isLob(type)) {
+            if (type == DataType.dataTypeBlob) {
                 sb = new StringBuilder();
                 sb.append("to_blob('");
-                for(int i=0;i<random.nextInt(4000);i++)
-                {
+                for (int i = 0; i < random.nextInt(4000); i++) {
                     sb.append(random.nextInt(2));
                 }
                 sb.append("')");
                 return sb.toString();
-            }else if(type==DataType.dataTypeBfile){
+            } else if (type == DataType.dataTypeBfile) {
                 return "BFILENAME('tmpdir', '~/tmp.txt')";
-            }else{
+            } else {
                 //CLOB 和 NCLOB 随机创建6000字节大小的数据
-                return getRandomString(random.nextInt(4000),c);
+                return getRandomString(random.nextInt(4000), c);
             }
-        } else if(DataType.isNumber(type)){
-            if(type==DataType.dataTypeNumber || type==DataType.dataTypeFloat){
-                int val = random.nextInt((int) Math.pow(10,columnNode.precision-columnNode.scale));
+        } else if (DataType.isNumber(type)) {
+            if (type == DataType.dataTypeNumber) {
+                int val = random.nextInt((int) Math.pow(10, columnNode.precision - columnNode.scale));
 
-                int decimalVal = random.nextInt((int) Math.pow(10,columnNode.scale));
-                return ""+val+"."+decimalVal;
-            }else if(type==DataType.dataTypeInt){
-                return ""+random.nextInt(Integer.MAX_VALUE);
+                int decimalVal = random.nextInt((int) Math.pow(10, columnNode.scale));
+                return "" + val + "." + decimalVal;
+            } else if (type == DataType.dataTypeInt) {
+                return "" + random.nextInt(Integer.MAX_VALUE);
             }
 
-        } else if(DataType.isDate(type)){
+        } else if (DataType.isDate(type)) {
 
             String myDate = df.format(new Date()); //当前时间
             sb = new StringBuilder();
 
-            if(type==DataType.dataTypeDate){
+            if (type == DataType.dataTypeDate) {
                 sb.append("to_date('");
-            }else{
+            } else {
                 sb.append("to_timestamp('");
             }
             sb.append(myDate);
             sb.append("','yyyy-mm-dd hh24:mi:ss')");
             return sb.toString();
-        }
-        else{
-            System.out.println("unknown datatype "+ type.name);
+        } else {
+            System.out.println("unknown datatype " + type.name);
         }
         return "null";
 
     }
 
-    private String getRandomString(int length,char PrefixChar){
+    private String getRandomString(int length, char PrefixChar) {
         StringBuilder sb = new StringBuilder();
 
         sb.append("'");
@@ -276,21 +299,24 @@ public class OracleResultSetBuilder {
         if (length > 8) {
             //如果字段长度大于8，那么在字段的前后添加“AAAA数据部分AAAA”的标记，这样在测试时能更快从TNS包中定位到数据的位置
             sb.append(PrefixChar).append(PrefixChar).append(PrefixChar).append(PrefixChar);
-
-
         }
-        int leftBytes = length-8;
-        while(true){
+
+
+        int leftBytes = length - 8;
+        if(leftBytes>0){
+            leftBytes = random.nextInt(leftBytes);
+        }
+        while (true) {
 
             int index = random.nextInt(testStrings.length);
 
             String s = testStrings[index];
             int sByteLength = testStringsByteLength[index];
-            if(leftBytes-sByteLength<0){
+            if (leftBytes - sByteLength < 0) {
                 break;
-            }else{
+            } else {
                 sb.append(s);
-                leftBytes-=sByteLength;
+                leftBytes -= sByteLength;
             }
 
         }
@@ -310,7 +336,7 @@ public class OracleResultSetBuilder {
      */
     private List<ColumnNode> createColumnNodeList() {
         System.out.println("开始构造列信息...");
-        int columnCnt = random.nextInt(MaxColumnCount);
+        int columnCnt = random.nextInt(MaxColumnCount) + 3;
         boolean haveLongColumn = false;
         List<ColumnNode> columnNodes = new ArrayList<ColumnNode>();
         for (int i = 0; i < columnCnt; i++) {
@@ -330,8 +356,8 @@ public class OracleResultSetBuilder {
             node.precision = getPrecision(type);
             node.dataType = type;
             node.scale = getScale(type);
-            if(node.scale!=0){
-                node.precision+=node.scale;
+            if (node.scale != 0) {
+                node.precision += node.scale;
             }
             columnNodes.add(node);
 
@@ -342,19 +368,23 @@ public class OracleResultSetBuilder {
 
     private int getScale(DataType type) {
         if (type == DataType.dataTypeNumber) {
-            return random.nextInt(10)+1;
+            return random.nextInt(10) + 1;
         }
         return 0;
     }
 
     private int getPrecision(DataType type) {
         if (DataType.isChar(type)) {
-            return random.nextInt(1000)+10;
+            return random.nextInt(1000) + 10;
         }
         if (type == DataType.dataTypeNumber) {
-            return random.nextInt(15)+1;
+            return random.nextInt(15) + 1;
         }
         return 0;
+    }
+
+    private boolean getProbability(int probability) {
+        return random.nextInt(100) < NullProbability;
     }
 
 
