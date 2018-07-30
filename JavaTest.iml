@@ -32,6 +32,9 @@
         </compilerArguments>
       </configuration>
     </facet>
+    <facet type="Python" name="Python">
+      <configuration sdkName="Python 3.5.2 (D:\Program Files\Python\Python35\python.exe)" />
+    </facet>
   </component>
   <component name="NewModuleRootManager" LANGUAGE_LEVEL="JDK_1_8">
     <output url="file://$MODULE_DIR$/target/classes" />
@@ -45,6 +48,7 @@
     <orderEntry type="inheritedJdk" />
     <orderEntry type="sourceFolder" forTests="false" />
     <orderEntry type="library" name="KotlinJavaRuntime" level="project" />
+    <orderEntry type="library" name="Python 3.5.2 (D:\Program Files\Python\Python35\python.exe) interpreter library" level="application" />
     <orderEntry type="library" name="Maven: com.alibaba:druid:1.0.26" level="project" />
     <orderEntry type="module-library">
       <library name="Maven: com.alibaba:jconsole:1.8.0">
@@ -89,5 +93,6 @@
     <orderEntry type="library" name="Maven: org.jetbrains:annotations:13.0" level="project" />
     <orderEntry type="library" name="Maven: org.jetbrains.kotlin:kotlin-stdlib-jre7:1.2.10" level="project" />
     <orderEntry type="library" scope="TEST" name="Maven: org.jetbrains.kotlin:kotlin-test:1.2.10" level="project" />
+    <orderEntry type="library" name="Maven: org.jsoup:jsoup:1.11.3" level="project" />
   </component>
 </module>
