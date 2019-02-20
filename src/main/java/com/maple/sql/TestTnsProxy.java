@@ -139,6 +139,6 @@ public class TestTnsProxy {
 
 //        test.testDB("HR", "hr", "%");
 //        test.concurrentTestDB("SCOTT","scott","%");
-        test.concurrentTestDB("HR","hr","M%",1);
+        test.concurrentTestDB("hr","hr","test1",1);
     }
 }
