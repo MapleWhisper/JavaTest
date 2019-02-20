@@ -1,7 +1,8 @@
 package com.niuke;
 
-
-import java.util.*;
+import java.util.ArrayList;
+import java.util.LinkedList;
+import java.util.Stack;
 
 class TreeNode {
     int val = 0;
@@ -216,6 +217,7 @@ public class Solution {
     }
 
     public ListNode ReverseList(ListNode head) {
+        //顺序反转
 //        if(head==null || head.next==null){
 //            return head;
 //        }
@@ -228,6 +230,7 @@ public class Solution {
 //            p = tmp;
 //        }
 //        return newHead;
+        //递归反转
         if(head==null || head.next==null){
             return head;
         }
@@ -418,5 +421,47 @@ public class Solution {
 //        System.out.println(Arrays.toString(ans.toArray()));
         return ans;
     }
+
+    /**
+     * 输入一个链表，输出该链表中倒数第k个结点。
+     * @param head
+     * @param k
+     * @return
+     */
+    public ListNode FindKthToTail(ListNode head,int k) {
+
+        ListNode fast = head;
+        ListNode slow = head;
+        int n = k-1;
+        while((n--)!=0 && fast!=null){
+            fast = fast.next;
+        }
+        if(fast == null){
+            return null;
+        }
+        while (fast.next!=null){
+            fast = fast.next;
+            slow = slow.next;
+        }
+        return  slow;
+    }
+
+    private boolean doHaveTree(TreeNode root1 , TreeNode root2){
+        if(root2==null){
+            return true;
+        }
+        if(root1==null || root1.val != root2.val){
+            return false;
+        }
+        return doHaveTree(root1.left,root2.left) && doHaveTree(root1.right,root2.right);
+    }
+
+    public boolean HasSubtree(TreeNode root1, TreeNode root2) {
+        if(root1==null || root2 == null){
+            return false ;
+        }
+        return doHaveTree(root1,root2) ||  doHaveTree(root1.left,root2) || doHaveTree(root1.right,root2);
+    }
+
 
 }
