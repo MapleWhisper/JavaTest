@@ -3,7 +3,9 @@ package com.leetcode;
 import com.alibaba.fastjson.JSON;
 import com.maple.algorithm.ListNode;
 
-import java.util.*;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Random;
 
 public class Solution {
 
